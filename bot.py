@@ -22,7 +22,7 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
-# Соответствие имён и ID в Platrum
+# Соответствие имён с ID пользователей Platrum
 USER_MAP = {
     "Иван": "3443a213affa5a96d35c10190f6708b5"
 }
@@ -52,7 +52,7 @@ async def task_handler(message: Message):
 
         now = datetime.datetime.now()
 
-        # Формируем planned_end_date с пробелом (НЕ T)
+        # Подготовка даты окончания задачи
         if due_time:
             hour, minute = map(int, due_time.split(":"))
             planned_end = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -73,7 +73,7 @@ async def task_handler(message: Message):
             "description": "Создано через Telegram-бота",
             "owner_user_id": user_id,
             "responsible_user_ids": [user_id],
-            "status_key": "новая",
+            "status_key": "New",  # ⚠️ Важно: правильный ключ статуса
             "tag_keys": ["бот", "Telegram"],
             "start_date": now_str
         }
