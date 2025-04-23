@@ -21,7 +21,7 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
-# Соответствие имён с ID пользователей Platrum
+# Имя → ID пользователя в Platrum
 USER_MAP = {
     "Иван": "3443a213affa5a96d35c10190f6708b5"
 }
@@ -51,7 +51,7 @@ async def task_handler(message: Message):
 
         now = datetime.datetime.now()
 
-        # Формат даты с пробелами (НЕ T и НЕ кодировать!)
+        # Формируем дату окончания
         if due_time:
             hour, minute = map(int, due_time.split(":"))
             planned_end = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -59,6 +59,8 @@ async def task_handler(message: Message):
             planned_end = now
 
         planned_end_str = planned_end.strftime("%Y-%m-%d %H:%M:%S")
+        planned_end_url = planned_end_str.replace(" ", "%20")  # только пробел
+
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
         headers = {
@@ -71,13 +73,12 @@ async def task_handler(message: Message):
             "description": "Создано через Telegram-бота",
             "owner_user_id": user_id,
             "responsible_user_ids": [user_id],
-            "status_key": "New",  # 👈 именно так, с заглавной буквы
+            "status_key": "New",
             "tag_keys": ["бот", "Telegram"],
             "start_date": now_str
         }
 
-        # Без URL-кодирования
-        url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_str}"
+        url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_url}"
 
         response = requests.post(url, headers=headers, json=data)
 
