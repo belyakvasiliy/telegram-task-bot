@@ -21,7 +21,6 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
-# Сопоставление имён с user_id Platrum
 USER_MAP = {
     "Иван": "3443a213affa5a96d35c10190f6708b5"
 }
@@ -49,7 +48,6 @@ async def task_handler(message: Message):
             await message.reply(f"Неизвестный исполнитель: {assignee}")
             return
 
-        # Формируем planned_end_date в формате ISO 8601
         if due_time:
             now = datetime.datetime.now()
             hour, minute = map(int, due_time.split(":"))
@@ -58,20 +56,24 @@ async def task_handler(message: Message):
         else:
             planned_end_str = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
+        now_str = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
         headers = {
             "Api-key": PLATRUM_API_KEY,
             "Content-Type": "application/json"
         }
 
-        # ✅ Ключевые поля строго по API Platrum
         data = {
             "name": task_text,
             "description": "Создано через Telegram-бота",
             "owner_user_id": user_id,
-            "responsible_user_ids": [user_id]
+            "responsible_user_ids": [user_id],
+            "status_key": "новая",
+            "tag_keys": ["бот", "Telegram"],
+            "start_date": now_str
         }
 
-        url = f"https://steves.platrum.ru/api/task/create?planned_end_date={planned_end_str}"
+        url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_str}"
 
         response = requests.post(url, headers=headers, json=data)
 
