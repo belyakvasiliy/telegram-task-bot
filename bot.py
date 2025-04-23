@@ -1,6 +1,5 @@
 import os
 import logging
-import urllib.parse
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
 from aiogram.utils.executor import start_webhook
@@ -52,7 +51,7 @@ async def task_handler(message: Message):
 
         now = datetime.datetime.now()
 
-        # Подготовка даты окончания задачи
+        # Формат даты с пробелами (НЕ T и НЕ кодировать!)
         if due_time:
             hour, minute = map(int, due_time.split(":"))
             planned_end = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -60,7 +59,6 @@ async def task_handler(message: Message):
             planned_end = now
 
         planned_end_str = planned_end.strftime("%Y-%m-%d %H:%M:%S")
-        planned_end_encoded = urllib.parse.quote(planned_end_str)
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
         headers = {
@@ -73,12 +71,13 @@ async def task_handler(message: Message):
             "description": "Создано через Telegram-бота",
             "owner_user_id": user_id,
             "responsible_user_ids": [user_id],
-            "status_key": "New",  # ⚠️ Важно: правильный ключ статуса
+            "status_key": "New",  # 👈 именно так, с заглавной буквы
             "tag_keys": ["бот", "Telegram"],
             "start_date": now_str
         }
 
-        url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_encoded}"
+        # Без URL-кодирования
+        url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_str}"
 
         response = requests.post(url, headers=headers, json=data)
 
