@@ -59,13 +59,11 @@ async def task_handler(message: Message):
         else:
             planned_end_str = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-        # Заголовки
         headers = {
             "Api-key": PLATRUM_API_KEY,
             "Content-Type": "application/json"
         }
 
-        # Данные задачи
         data = {
             "name": task_text,
             "description": "Создано через Telegram-бота",
@@ -73,17 +71,19 @@ async def task_handler(message: Message):
             "responsible_users": [user_id]
         }
 
-        # Запрос к Platrum
-        response = requests.post(
-            f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_str}",
-            headers=headers,
-            json=data
-        )
+        # ⚠️ ВНИМАНИЕ: используем точный URL из документации
+        url = f"https://steves.platrum.ru/api/task/create?planned_end_date={planned_end_str}"
+
+        response = requests.post(url, headers=headers, json=data)
 
         if response.status_code == 200:
             await message.reply(f"✅ Задача создана для {assignee}: {task_text}")
         else:
-            await message.reply(f"❌ Ошибка Platrum: {response.text}\n📤 Отправлено: {data}")
+            await message.reply(
+                f"❌ Ошибка Platrum: {response.text}\n"
+                f"📤 Отправлено: {data}\n"
+                f"📅 URL: {url}"
+            )
 
     except Exception as e:
         await message.reply(f"⚠️ Ошибка: {e}")
