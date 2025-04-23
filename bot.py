@@ -49,7 +49,7 @@ async def task_handler(message: Message):
             await message.reply(f"Неизвестный исполнитель: {assignee}")
             return
 
-        # Время окончания задачи
+        # Формируем planned_end_date в формате ISO 8601
         if due_time:
             now = datetime.datetime.now()
             hour, minute = map(int, due_time.split(":"))
@@ -63,7 +63,7 @@ async def task_handler(message: Message):
             "Content-Type": "application/json"
         }
 
-        # ✅ Правильные поля
+        # ✅ Ключевые поля строго по API Platrum
         data = {
             "name": task_text,
             "description": "Создано через Telegram-бота",
@@ -81,7 +81,7 @@ async def task_handler(message: Message):
             await message.reply(
                 f"❌ Ошибка Platrum: {response.text}\n"
                 f"📤 Отправлено: {data}\n"
-                f"📅 URL: {url}"
+                f"🔗 URL: {url}"
             )
 
     except Exception as e:
