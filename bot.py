@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.INFO)
 # 📧 Сопоставление имён с email'ами
 USER_MAP = {
     "Иван": "belyak.vasiliy@gmail.com"
-    # Добавляй сюда: "Яна": "yana@company.com", и т.д.
+    # Добавляй сюда других: "Яна": "yana@company.com", ...
 }
 
 @dp.message_handler(commands=["start"])
@@ -66,7 +66,8 @@ async def task_handler(message: Message):
         data = {
             "title": task_text,
             "assigned_to": assigned_email,
-            "due_date": due_date_iso
+            "due_date": due_date_iso,
+            "status": "Новая"  # ✅ Статус по-русски
         }
 
         response = requests.post("https://api.platrum.ru/v1/tasks", json=data, headers=headers)
@@ -77,4 +78,23 @@ async def task_handler(message: Message):
             await message.reply(f"❌ Ошибка Platrum: {response.text}")
 
     except Exception as e:
-        await message.reply(f"⚠
+        await message.reply(f"⚠️ Ошибка: {e}")
+
+async def on_startup(dp):
+    await bot.set_webhook(WEBHOOK_URL)
+    print("📡 Webhook установлен")
+
+async def on_shutdown(dp):
+    logging.warning('Shutting down..')
+    await bot.delete_webhook()
+    logging.warning('Webhook удалён')
+
+if __name__ == '__main__':
+    start_webhook(
+        dispatcher=dp,
+        webhook_path=WEBHOOK_PATH,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+        host=WEBAPP_HOST,
+        port=WEBAPP_PORT,
+    )
