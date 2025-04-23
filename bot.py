@@ -1,5 +1,6 @@
 import os
 import logging
+import urllib.parse
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
 from aiogram.utils.executor import start_webhook
@@ -21,6 +22,7 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
+# Соответствие имён и ID в Platrum
 USER_MAP = {
     "Иван": "3443a213affa5a96d35c10190f6708b5"
 }
@@ -48,15 +50,18 @@ async def task_handler(message: Message):
             await message.reply(f"Неизвестный исполнитель: {assignee}")
             return
 
+        now = datetime.datetime.now()
+
+        # Формируем planned_end_date с пробелом (НЕ T)
         if due_time:
-            now = datetime.datetime.now()
             hour, minute = map(int, due_time.split(":"))
             planned_end = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-            planned_end_str = planned_end.strftime("%Y-%m-%dT%H:%M:%S")
         else:
-            planned_end_str = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            planned_end = now
 
-        now_str = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        planned_end_str = planned_end.strftime("%Y-%m-%d %H:%M:%S")
+        planned_end_encoded = urllib.parse.quote(planned_end_str)
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
         headers = {
             "Api-key": PLATRUM_API_KEY,
@@ -73,7 +78,7 @@ async def task_handler(message: Message):
             "start_date": now_str
         }
 
-        url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_str}"
+        url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_encoded}"
 
         response = requests.post(url, headers=headers, json=data)
 
