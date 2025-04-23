@@ -23,6 +23,12 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
+# 📧 Сопоставление имён с email'ами
+USER_MAP = {
+    "Иван": "belyak.vasiliy@gmail.com"
+    # Добавляй сюда: "Яна": "yana@company.com", и т.д.
+}
+
 @dp.message_handler(commands=["start"])
 async def start_handler(message: Message):
     await message.reply("Бот активен. Пиши /task Иван сделать отчёт до 16:00")
@@ -41,6 +47,10 @@ async def task_handler(message: Message):
         task_text = task_info[1] if len(task_info) > 1 else "Без описания"
         due_time = parts[1] if len(parts) > 1 else None
 
+        # Подстановка email, если имя найдено
+        assigned_email = USER_MAP.get(assignee, assignee)
+
+        # Дата дедлайна
         due_date_iso = None
         if due_time:
             now = datetime.datetime.now()
@@ -55,7 +65,7 @@ async def task_handler(message: Message):
 
         data = {
             "title": task_text,
-            "assigned_to": assignee,
+            "assigned_to": assigned_email,
             "due_date": due_date_iso
         }
 
@@ -67,23 +77,4 @@ async def task_handler(message: Message):
             await message.reply(f"❌ Ошибка Platrum: {response.text}")
 
     except Exception as e:
-        await message.reply(f"⚠️ Ошибка: {e}")
-
-async def on_startup(dp):
-    await bot.set_webhook(WEBHOOK_URL)
-    print("Webhook установлен")
-
-async def on_shutdown(dp):
-    logging.warning('Shutting down..')
-    await bot.delete_webhook()
-    logging.warning('Bye!')
-
-if __name__ == '__main__':
-    start_webhook(
-        dispatcher=dp,
-        webhook_path=WEBHOOK_PATH,
-        on_startup=on_startup,
-        on_shutdown=on_shutdown,
-        host=WEBAPP_HOST,
-        port=WEBAPP_PORT,
-    )
+        await message.reply(f"⚠
