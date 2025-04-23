@@ -9,12 +9,11 @@ import datetime
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PLATRUM_API_KEY = os.getenv("PLATRUM_API_KEY")
 
-# Webhook settings
+# Webhook config
 WEBHOOK_HOST = 'https://telegram-task-bot-4fly.onrender.com'
 WEBHOOK_PATH = '/webhook'
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
-# Webserver settings
 WEBAPP_HOST = "0.0.0.0"
 WEBAPP_PORT = int(os.environ.get("PORT", 3000))
 
@@ -23,10 +22,9 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
-# 📧 Сопоставление имён с email'ами
+# Сопоставление имён с user_id Platrum
 USER_MAP = {
-    "Иван": "belyak.vasiliy@gmail.com"
-    # Добавляй сюда других: "Яна": "yana@company.com", ...
+    "Иван": "3443a213affa5a96d35c10190f6708b5"
 }
 
 @dp.message_handler(commands=["start"])
@@ -47,35 +45,45 @@ async def task_handler(message: Message):
         task_text = task_info[1] if len(task_info) > 1 else "Без описания"
         due_time = parts[1] if len(parts) > 1 else None
 
-        # Подстановка email, если имя найдено
-        assigned_email = USER_MAP.get(assignee, assignee)
+        user_id = USER_MAP.get(assignee)
+        if not user_id:
+            await message.reply(f"Неизвестный исполнитель: {assignee}")
+            return
 
-        # Дата дедлайна
-        due_date_iso = None
+        # Обработка времени завершения
         if due_time:
             now = datetime.datetime.now()
             hour, minute = map(int, due_time.split(":"))
-            due_date = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-            due_date_iso = due_date.isoformat()
+            planned_end = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            planned_end_str = planned_end.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            planned_end_str = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
+        # Заголовки
         headers = {
-            "Authorization": f"Bearer {PLATRUM_API_KEY}",
+            "Api-key": PLATRUM_API_KEY,
             "Content-Type": "application/json"
         }
 
+        # Данные задачи
         data = {
-            "title": task_text,
-            "assigned_to": assigned_email,
-            "due_date": due_date_iso,
-            "status": "Новая"  # ✅ Статус по-русски
+            "name": task_text,
+            "description": "Создано через Telegram-бота",
+            "owner_user": user_id,
+            "responsible_users": [user_id]
         }
 
-        response = requests.post("https://api.platrum.ru/v1/tasks", json=data, headers=headers)
+        # Запрос к Platrum
+        response = requests.post(
+            f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_str}",
+            headers=headers,
+            json=data
+        )
 
-        if response.status_code == 201:
+        if response.status_code == 200:
             await message.reply(f"✅ Задача создана для {assignee}: {task_text}")
         else:
-            await message.reply(f"❌ Ошибка Platrum: {response.text}")
+            await message.reply(f"❌ Ошибка Platrum: {response.text}\n📤 Отправлено: {data}")
 
     except Exception as e:
         await message.reply(f"⚠️ Ошибка: {e}")
