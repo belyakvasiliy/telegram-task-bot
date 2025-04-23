@@ -9,7 +9,6 @@ import datetime
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PLATRUM_API_KEY = os.getenv("PLATRUM_API_KEY")
 
-# Webhook config
 WEBHOOK_HOST = 'https://telegram-task-bot-4fly.onrender.com'
 WEBHOOK_PATH = '/webhook'
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
@@ -50,7 +49,7 @@ async def task_handler(message: Message):
             await message.reply(f"Неизвестный исполнитель: {assignee}")
             return
 
-        # Обработка времени завершения
+        # Время окончания задачи
         if due_time:
             now = datetime.datetime.now()
             hour, minute = map(int, due_time.split(":"))
@@ -64,14 +63,14 @@ async def task_handler(message: Message):
             "Content-Type": "application/json"
         }
 
+        # ✅ Правильные поля
         data = {
             "name": task_text,
             "description": "Создано через Telegram-бота",
-            "owner_user": user_id,
-            "responsible_users": [user_id]
+            "owner_user_id": user_id,
+            "responsible_user_ids": [user_id]
         }
 
-        # ⚠️ ВНИМАНИЕ: используем точный URL из документации
         url = f"https://steves.platrum.ru/api/task/create?planned_end_date={planned_end_str}"
 
         response = requests.post(url, headers=headers, json=data)
