@@ -13,7 +13,7 @@ async def list_boards(message: types.Message):
         await message.reply("Доски не найдены.")
         return
 
-    text = "📋 *Список досок:*
+    text = "📋 *Список досок:*"
 "
     for board in boards:
         text += f"\n📌 *{board['name']}* (ID: {board['id']})\nПанелей: {len(board['panels'])}"
