@@ -7,6 +7,7 @@ from aiogram.utils.executor import start_webhook
 
 from config import BOT_TOKEN, WEBHOOK_HOST, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
 from users import update_users, get_all_users, find_user_id_by_name  # обновление и поиск сотрудников
+from api import platrum_post  # вызов API создания задачи
 
 # Импорт хендлеров — обязательно, чтобы они были зарегистрированы
 from handlers import tasks, users, boards, wiki
@@ -51,8 +52,27 @@ async def create_task(message: types.Message):
         await message.reply(f"❌ Неизвестный исполнитель: {name}. Проверь имя через /users")
         return
 
-    await message.reply(f"✅ Исполнитель найден: {name} (ID: {user_id})\n📌 Задача: {task_text}")
-    # Здесь будет вызов создания задачи через API
+    now = message.date.strftime("%Y-%m-%d %H:%M:%S")
+    data = {
+        "name": task_text,
+        "description": f"Создано через Telegram от {name}",
+        "owner_user_id": user_id,
+        "responsible_user_ids": [user_id],
+        "status_key": "new",
+        "tag_keys": ["бот", "Telegram"],
+        "start_date": now,
+        "block_id": 3,
+        "category_key": "task"
+    }
+
+    result = platrum_post("/tasks/api/task/create", data)
+
+    if result.get("status") == "success":
+        task_id = result["data"].get("id")
+        await message.reply(f"✅ Задача создана!
+🔗 https://{WEBHOOK_HOST.replace('https://', '')}/tasks/task/{task_id}")
+    else:
+        await message.reply(f"❌ Ошибка при создании задачи: {result}")
 
 # Подключение webhook и запуск
 async def on_startup(dp):
