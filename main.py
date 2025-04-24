@@ -5,7 +5,7 @@ import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils.executor import start_webhook
 
-from config import BOT_TOKEN, WEBHOOK_HOST, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
+from utils.config import BOT_TOKEN, WEBHOOK_HOST, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
 from users import update_users, get_all_users, find_user_id_by_name  # обновление и поиск сотрудников
 from api import platrum_post  # вызов API создания задачи
 
