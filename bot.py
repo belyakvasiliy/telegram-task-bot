@@ -21,14 +21,15 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
-# 👤 Имя → ID пользователя в Platrum
+# 👥 Список исполнителей
 USER_MAP = {
     "Василий": "3443a213affa5a96d35c10190f6708b5",
     "Светлана": "f2206949133b4b4936f163edebe6c8ec",
     "Александр": "a54525a9e1a995c783d816f4dcba3f3e"
 }
 
-user_pending_tasks = {}  # message_id: {"text": str, "from_user_id": int}
+# ⏳ Сохраняем временно описание задачи до выбора исполнителя
+PENDING_TASKS = {}
 
 @dp.message_handler(commands=["start"])
 async def start_handler(message: types.Message):
@@ -36,28 +37,31 @@ async def start_handler(message: types.Message):
 
 @dp.message_handler(commands=["task"])
 async def task_handler(message: types.Message):
-    args = message.get_args()
-    if not args:
-        await message.reply("Укажи задачу: /task Сделать отчёт")
+    task_text = message.get_args().strip()
+    if not task_text:
+        await message.reply("⚠️ Формат: /task <Описание задачи>")
         return
+
+    PENDING_TASKS[message.chat.id] = task_text
 
     keyboard = InlineKeyboardMarkup(row_width=1)
     for name in USER_MAP:
-        keyboard.add(InlineKeyboardButton(name, callback_data=f"assign:{name}|{args}"))
+        keyboard.add(InlineKeyboardButton(text=name, callback_data=f"assign:{name}"))
 
-    sent = await message.reply("Кому назначить задачу?", reply_markup=keyboard)
-    user_pending_tasks[sent.message_id] = {"text": args, "from_user_id": message.from_user.id}
+    await message.reply("Кому назначить задачу?", reply_markup=keyboard)
 
 @dp.callback_query_handler(lambda c: c.data.startswith("assign:"))
 async def assign_callback(callback_query: types.CallbackQuery):
-    await callback_query.answer()
-    data = callback_query.data[len("assign:"):]
-    name, task_text = data.split("|", 1)
+    name = callback_query.data.split(":")[1]
     user_id = USER_MAP.get(name)
-    now = datetime.datetime.now()
+    task_text = PENDING_TASKS.get(callback_query.message.chat.id)
 
+    if not task_text:
+        await callback_query.answer("⚠️ Не найдена задача.", show_alert=True)
+        return
+
+    now = datetime.datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    planned_end_str = now.strftime("%Y-%m-%d %H:%M:%S")  # временно до добавления времени вручную
 
     headers = {
         "Api-key": PLATRUM_API_KEY,
@@ -66,8 +70,8 @@ async def assign_callback(callback_query: types.CallbackQuery):
 
     data = {
         "name": task_text,
-        "description": f"Создано через Telegram-группу от {callback_query.from_user.full_name}",
-        "owner_user_id": user_id,
+        "description": f"Создано через Telegram-группу от Vasyl Beliak",
+        "owner_user_id": "3443a213affa5a96d35c10190f6708b5",
         "responsible_user_ids": [user_id],
         "status_key": "new",
         "tag_keys": ["бот", "Telegram"],
@@ -76,16 +80,20 @@ async def assign_callback(callback_query: types.CallbackQuery):
         "category_key": "task"
     }
 
-    url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_str.replace(' ', '%20')}"
+    url = f"https://steves.platrum.ru/tasks/api/task/create"
     response = requests.post(url, headers=headers, json=data)
+    result = response.json()
 
-    if response.status_code == 200 and response.json().get("status") == "success":
-        task_id = response.json().get("data", {}).get("id")
-        task_link = f"https://steves.platrum.ru/tasks/task/{task_id}"
-        await bot.send_message(callback_query.from_user.id, f"✅ Задача создана: {task_text}\n🔗 {task_link}")
+    if response.status_code == 200 and result.get("status") == "success":
+        task_id = result.get("data", {}).get("id")
+        link = f"https://steves.platrum.ru/tasks/task/{task_id}"
+        await bot.send_message(callback_query.message.chat.id, f"✅ Задача создана: {task_text}\n🔗 {link}")
     else:
-        await bot.send_message(callback_query.from_user.id,
-            f"❌ Ошибка Platrum: {response.text}\n📤 Отправлено: {data}\n🔗 URL: {url}")
+        await bot.send_message(callback_query.message.chat.id,
+            f"❌ Ошибка Platrum: {response.text}\n\n📤 Отправлено: {data}")
+
+    await callback_query.answer()
+    PENDING_TASKS.pop(callback_query.message.chat.id, None)
 
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
