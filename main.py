@@ -7,7 +7,7 @@ from aiogram.utils.executor import start_webhook
 
 from utils.config import BOT_TOKEN, WEBHOOK_HOST, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
 from utils.users import update_users, get_all_users, find_user_id_by_name  # обновление и поиск сотрудников
-from api import platrum_post  # вызов API создания задачи
+from utils.api import platrum_post  # вызов API создания задачи
 
 # Импорт хендлеров — обязательно, чтобы они были зарегистрированы
 from handlers import tasks, users, boards, wiki
