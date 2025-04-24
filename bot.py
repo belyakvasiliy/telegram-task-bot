@@ -31,7 +31,7 @@ OWNER_ID = "3443a213affa5a96d35c10190f6708b5"
 
 @dp.message_handler(commands=["start"])
 async def start_handler(message: types.Message):
-    await message.reply("Бот активен. Напиши /task Описание задачи или /find КлючевоеСлово")
+    await message.reply("Бот активен. Используй:\n/task <задача> — назначить\n/taskinfo <id> — инфо")
 
 @dp.message_handler(commands=["task"])
 async def task_handler(message: types.Message):
@@ -41,7 +41,7 @@ async def task_handler(message: types.Message):
         return
 
     keyboard = InlineKeyboardMarkup(row_width=1)
-    for name in USER_MAP.keys():
+    for name in USER_MAP:
         keyboard.add(InlineKeyboardButton(name, callback_data=f"assign:{name}:{args}"))
 
     await message.reply("Кому назначить задачу?", reply_markup=keyboard)
@@ -70,7 +70,7 @@ async def assign_task(callback_query: CallbackQuery):
         "category_key": "task"
     }
 
-    url = f"https://steves.platrum.ru/tasks/api/task/create"
+    url = "https://steves.platrum.ru/tasks/api/task/create"
     response = requests.post(url, headers=headers, json=data)
     result = response.json()
 
@@ -83,41 +83,65 @@ async def assign_task(callback_query: CallbackQuery):
 
     await callback_query.answer()
 
-@dp.message_handler(commands=["find"])
-async def find_task(message: types.Message):
-    keyword = message.get_args().strip().lower()
-    if not keyword:
-        await message.reply("Пожалуйста, укажи ключевое слово для поиска: /find <ключевое слово>")
+@dp.message_handler(commands=["taskinfo"])
+async def task_info_handler(message: types.Message):
+    task_id = message.get_args().strip()
+    if not task_id.isdigit():
+        await message.reply("Укажи корректный ID задачи: /taskinfo <ID>")
         return
 
-    url = "https://steves.platrum.ru/tasks/api/task/list"
+    url = "https://steves.platrum.ru/tasks/api/task/get"
     headers = {
         "Api-key": PLATRUM_API_KEY,
         "Content-Type": "application/json"
     }
-
-    response = requests.post(url, headers=headers, json={})
+    data = {"id": int(task_id)}
+    response = requests.post(url, headers=headers, json=data)
     result = response.json()
 
     if result.get("status") != "success":
-        await message.reply(f"❌ Ошибка при получении списка задач: {response.text}")
+        await message.reply(f"❌ Ошибка Platrum: {response.text}")
         return
 
-    tasks = result.get("data", [])
-    matches = [task for task in tasks if keyword in task.get("name", "").lower()]
+    task = result["data"]
+    link = f"https://steves.platrum.ru/tasks/task/{task_id}"
 
-    if not matches:
-        await message.reply("🔍 Ничего не найдено.")
-        return
+    def yes_no(val): return "✅ Да" if val else "❌ Нет"
 
-    reply_text = "🔍 Найденные задачи:\n"
-    for task in matches[:5]:  # максимум 5 задач
-        task_id = task["id"]
-        name = task["name"]
-        link = f"https://steves.platrum.ru/tasks/task/{task_id}"
-        reply_text += f"• {name} — [Открыть]({link})\n"
+    info = (
+        f"📝 *Задача #{task_id}*\n"
+        f"*Название:* {task.get('name')}\n"
+        f"*Описание:* {task.get('description')}\n"
+        f"*Статус:* {task.get('status_key')}\n"
+        f"*Категория:* {task.get('category_key')}\n"
+        f"*Продукт:* {task.get('product') or '—'}\n"
+        f"*Теги:* {', '.join(task.get('tag_keys', [])) or '—'}\n\n"
 
-    await message.reply(reply_text, parse_mode="Markdown")
+        f"*Постановщик:* `{task.get('owner_user_id')}`\n"
+        f"*Исполнители:* {', '.join(task.get('responsible_user_ids', [])) or '—'}\n"
+        f"*Аудиторы:* {', '.join(task.get('auditors', [])) or '—'}\n"
+        f"*Наблюдатели:* {', '.join(task.get('watchers', [])) or '—'}\n\n"
+
+        f"*Создана:* {task.get('creation_date')}\n"
+        f"*Начало:* {task.get('start_date')}\n"
+        f"*Завершение:* {task.get('finish_date') or '—'}\n"
+        f"*Закрыта:* {task.get('close_date') or '—'}\n"
+        f"*Последний план:* {task.get('last_plan_end_date') or '—'}\n\n"
+
+        f"*Комментариев:* {task.get('comment_count', 0)}\n"
+        f"*Избранная:* {yes_no(task.get('is_favorite'))}\n"
+        f"*Срочная:* {yes_no(task.get('is_important'))}\n"
+        f"*Периодическая:* {yes_no(task.get('is_recurrent'))}\n"
+        f"*Ежедневная:* {yes_no(task.get('is_daily'))}\n"
+        f"*Выполнена:* {yes_no(task.get('is_finished'))}\n"
+        f"*В плане:* {yes_no(task.get('is_planned'))}\n"
+        f"*Можно редактировать:* {yes_no(task.get('can_edit'))}\n"
+        f"*Можно менять статус:* {yes_no(task.get('can_change_status'))}\n"
+        f"*Можно менять сроки:* {yes_no(task.get('can_change_deadline'))}\n\n"
+
+        f"📎 [Открыть задачу в Platrum]({link})"
+    )
+    await message.reply(info, parse_mode="Markdown")
 
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
