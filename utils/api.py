@@ -1,7 +1,7 @@
 # api.py — обёртка для работы с API Platrum
 
 import requests
-from config import PLATRUM_URL, get_headers
+from utils.config import PLATRUM_URL, get_headers
 
 # Общий метод для POST-запросов к Platrum API
 def platrum_post(endpoint: str, payload: dict = None):
