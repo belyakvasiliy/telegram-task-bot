@@ -1,7 +1,8 @@
 # utils/users.py — Вспомогательные функции для работы с сотрудниками Platrum
 
 import requests
-from utils.config import PLATRUM_URL, get_headers  # make sure this path is correct
+from utils.globals import PLATRUM_URL
+from utils.config import get_headers
 
 # Получить всех сотрудников
 
