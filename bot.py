@@ -27,7 +27,6 @@ USER_MAP = {
     "Александр": "a54525a9e1a995c783d816f4dcba3f3e"
 }
 
-pending_tasks = {}
 OWNER_ID = "3443a213affa5a96d35c10190f6708b5"
 
 @dp.message_handler(commands=["start"])
@@ -78,9 +77,9 @@ async def assign_task(callback_query: CallbackQuery):
     if response.status_code == 200 and result.get("status") == "success":
         task_id = result.get("data", {}).get("id")
         link = f"https://steves.platrum.ru/tasks/task/{task_id}"
-        await bot.send_message(callback_query.from_user.id, f"✅ Задача создана: {task_text}\n🔗 {link}")
+        await callback_query.message.answer(f"✅ Задача создана: {task_text}\n🔗 {link}")
     else:
-        await bot.send_message(callback_query.from_user.id, f"❌ Ошибка Platrum: {response.text}\n📤 Отправлено: {data}")
+        await callback_query.message.answer(f"❌ Ошибка Platrum: {response.text}\n📤 Отправлено: {data}")
 
     await callback_query.answer()
 
