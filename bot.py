@@ -20,20 +20,20 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
-# Привязка имён к ID пользователей в Platrum
+# 👤 Имя → ID пользователя в Platrum
 USER_MAP = {
     "Иван": "3443a213affa5a96d35c10190f6708b5"
 }
 
 @dp.message_handler(commands=["start"])
 async def start_handler(message: types.Message):
-    await message.reply("Бот активен. Пиши /task <Имя> <Задача> до <время>\nНапример: /task Иван Сделать отчёт до 17:00")
+    await message.reply("Бот активен. Пиши /task <Имя> <Задача> до <время>\nПример: /task Иван Сделать отчёт до 17:00")
 
 @dp.message_handler(commands=["task"])
 async def task_handler(message: types.Message):
     args = message.get_args()
     if not args:
-        await message.reply("Пожалуйста, укажи задачу: /task Иван Сделать отчёт до 17:00")
+        await message.reply("Укажи задачу: /task Иван Сделать отчёт до 17:00")
         return
 
     try:
@@ -69,9 +69,11 @@ async def task_handler(message: types.Message):
             "description": "Создано через Telegram-бота",
             "owner_user_id": user_id,
             "responsible_user_ids": [user_id],
-            "status_key": "New",
+            "status_key": "new",  # ✔️ lowercase
             "tag_keys": ["бот", "Telegram"],
-            "start_date": now_str
+            "start_date": now_str,
+            "block_id": 3,
+            "category_key": "task"
         }
 
         url = f"https://steves.platrum.ru/tasks/api/task/create?planned_end_date={planned_end_url}"
