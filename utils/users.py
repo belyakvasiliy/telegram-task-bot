@@ -1,14 +1,22 @@
 # utils/users.py — Вспомогательные функции для работы с сотрудниками Platrum
 
-from utils.api import platrum_post
+from utils.config import PLATRUM_URL, get_headers
+import requests
 
 # Получить всех сотрудников
 
 def get_all_users():
-    response = platrum_post("/company/api/staff/list")
-    if response.get("status") == "success":
-        return response.get("data", [])
-    return []
+    url = f"{PLATRUM_URL}/company/api/staff/list"
+    headers = get_headers()
+    try:
+        response = requests.post(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        if data.get("status") == "success":
+            return data.get("data", [])
+        return []
+    except requests.RequestException:
+        return []
 
 # Найти user_id по имени (без учёта регистра)
 def find_user_id_by_name(name):
