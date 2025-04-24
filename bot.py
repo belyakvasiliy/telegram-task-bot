@@ -22,7 +22,9 @@ logging.basicConfig(level=logging.INFO)
 
 # 👤 Имя → ID пользователя в Platrum
 USER_MAP = {
-    "Иван": "3443a213affa5a96d35c10190f6708b5"
+    "@SvetlanaCherednichok": "f2206949133b4b4936f163edebe6c8ec",
+    "@Business_Automation_Expert": "3443a213affa5a96d35c10190f6708b5"
+    
 }
 
 @dp.message_handler(commands=["start"])
