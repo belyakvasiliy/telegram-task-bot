@@ -69,8 +69,10 @@ async def create_task(message: types.Message):
 
     if result.get("status") == "success":
         task_id = result["data"].get("id")
-        await message.reply(f"✅ Задача создана!
-🔗 https://{WEBHOOK_HOST.replace('https://', '')}/tasks/task/{task_id}")
+        await message.reply(
+            f"✅ Задача создана!\n"
+            f"🔗 https://{WEBHOOK_HOST.replace('https://', '')}/tasks/task/{task_id}"
+        )
     else:
         await message.reply(f"❌ Ошибка при создании задачи: {result}")
 
