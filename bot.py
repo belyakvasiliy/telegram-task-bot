@@ -21,6 +21,7 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
+# Карта имён → Platrum ID
 USER_MAP = {
     "Василий": "3443a213affa5a96d35c10190f6708b5",
     "Светлана": "f2206949133b4b4936f163edebe6c8ec",
@@ -41,45 +42,50 @@ async def task_handler(message: types.Message):
         return
 
     keyboard = InlineKeyboardMarkup(row_width=1)
-    for name in USER_MAP.keys():
+    for name in USER_MAP:
         keyboard.add(InlineKeyboardButton(name, callback_data=f"assign:{name}:{args}"))
 
     await message.reply("Кому назначить задачу?", reply_markup=keyboard)
 
 @dp.callback_query_handler(lambda c: c.data.startswith("assign:"))
 async def assign_task(callback_query: CallbackQuery):
-    _, name, task_text = callback_query.data.split(":", 2)
-    user_id = USER_MAP.get(name)
-    now = datetime.datetime.now()
-    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        _, name, task_text = callback_query.data.split(":", 2)
+        user_id = USER_MAP.get(name)
+        now = datetime.datetime.now()
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    headers = {
-        "Api-key": PLATRUM_API_KEY,
-        "Content-Type": "application/json"
-    }
+        headers = {
+            "Api-key": PLATRUM_API_KEY,
+            "Content-Type": "application/json"
+        }
 
-    data = {
-        "name": task_text,
-        "description": f"Создано через Telegram-группу от Vasyl Beliak",
-        "owner_user_id": OWNER_ID,
-        "responsible_user_ids": [user_id],
-        "status_key": "new",
-        "tag_keys": ["бот", "Telegram"],
-        "start_date": now_str,
-        "block_id": 3,
-        "category_key": "task"
-    }
+        data = {
+            "name": task_text,
+            "description": f"Создано через Telegram-группу от Vasyl Beliak",
+            "owner_user_id": OWNER_ID,
+            "responsible_user_ids": [user_id],
+            "status_key": "new",
+            "tag_keys": ["бот", "Telegram"],
+            "start_date": now_str,
+            "block_id": 3,
+            "category_key": "task"
+        }
 
-    url = f"https://steves.platrum.ru/tasks/api/task/create"
-    response = requests.post(url, headers=headers, json=data)
-    result = response.json()
+        url = f"https://steves.platrum.ru/tasks/api/task/create"
+        response = requests.post(url, headers=headers, json=data)
+        result = response.json()
 
-    if response.status_code == 200 and result.get("status") == "success":
-        task_id = result.get("data", {}).get("id")
-        link = f"https://steves.platrum.ru/tasks/task/{task_id}"
-        await callback_query.message.answer(f"✅ Задача создана: {task_text}\n🔗 {link}")
-    else:
-        await callback_query.message.answer(f"❌ Ошибка Platrum: {response.text}\n📤 Отправлено: {data}")
+        if response.status_code == 200 and result.get("status") == "success":
+            task_id = result.get("data", {}).get("id")
+            link = f"https://steves.platrum.ru/tasks/task/{task_id}"
+            await callback_query.message.answer(f"✅ Задача создана: {task_text}\n🔗 {link}")
+        else:
+            await callback_query.message.answer(
+                f"❌ Ошибка Platrum: {response.text}\n📤 Отправлено: {data}"
+            )
+    except Exception as e:
+        await callback_query.message.answer(f"⚠️ Ошибка при создании задачи: {e}")
 
     await callback_query.answer()
 
