@@ -1,6 +1,6 @@
 # utils/users.py — Вспомогательные функции для работы с сотрудниками Platrum
 
-from api import platrum_post
+from utils.api import platrum_post platrum_post
 
 # Получить всех сотрудников
 
