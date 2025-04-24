@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.utils.executor import start_webhook
 
 from config import BOT_TOKEN, WEBHOOK_HOST, WEBHOOK_PATH, WEBHOOK_URL, WEBAPP_HOST, WEBAPP_PORT
-from users import update_users  # для обновления сотрудников
+from users import update_users, get_all_users  # для обновления и получения сотрудников
 
 # Импорт хендлеров — обязательно, чтобы они были зарегистрированы
 from handlers import tasks, users, boards, wiki
@@ -20,7 +20,20 @@ logging.basicConfig(level=logging.INFO)
 @dp.message_handler(commands=["start"])
 async def start_handler(message: types.Message):
     update_users()
-    await message.reply("Привет! Я бот для управления задачами Platrum.\n\nКоманды:\n/task <описание> — создать задачу\n/info <ID> — информация\n/find <ключ> — поиск\n/close <ID> — завершить задачу\n/delete <ID> — удалить задачу\n/update <ID> — изменить задачу\n/boards — список досок\n/wiki — база знаний")
+    await message.reply("Привет! Я бот для управления задачами Platrum.\n\nКоманды:\n/task <описание> — создать задачу\n/info <ID> — информация\n/find <ключ> — поиск\n/close <ID> — завершить задачу\n/delete <ID> — удалить задачу\n/update <ID> — изменить задачу\n/boards — список досок\n/wiki — база знаний\n/users — сотрудники")
+
+# Команда /users — показать список сотрудников
+@dp.message_handler(commands=["users"])
+async def list_users(message: types.Message):
+    users = get_all_users()
+    if not users:
+        await message.reply("Список сотрудников пуст или недоступен.")
+        return
+    text = "👥 *Сотрудники:*\n"
+    for user in users:
+        if not user.get("is_deleted"):
+            text += f"\n- {user['user_name']} (ID: {user['user_id']})"
+    await message.reply(text, parse_mode="Markdown")
 
 # Подключение webhook и запуск
 async def on_startup(dp):
