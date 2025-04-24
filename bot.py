@@ -21,16 +21,17 @@ dp = Dispatcher(bot)
 
 logging.basicConfig(level=logging.INFO)
 
-# Пользователи
 USER_MAP = {
     "Василий": "3443a213affa5a96d35c10190f6708b5",
     "Светлана": "f2206949133b4b4936f163edebe6c8ec",
     "Александр": "a54525a9e1a995c783d816f4dcba3f3e"
 }
 
+OWNER_ID = "3443a213affa5a96d35c10190f6708b5"
+
 @dp.message_handler(commands=["start"])
 async def start_handler(message: types.Message):
-    await message.reply("Бот активен. Напиши /task Описание задачи")
+    await message.reply("Бот активен. Напиши /task Описание задачи или /find КлючевоеСлово")
 
 @dp.message_handler(commands=["task"])
 async def task_handler(message: types.Message):
@@ -60,7 +61,7 @@ async def assign_task(callback_query: CallbackQuery):
     data = {
         "name": task_text,
         "description": f"Создано через Telegram-группу от {name}",
-        "owner_user_id": user_id,  # 👈 постановщик = исполнитель
+        "owner_user_id": OWNER_ID,
         "responsible_user_ids": [user_id],
         "status_key": "new",
         "tag_keys": ["бот", "Telegram"],
@@ -81,6 +82,42 @@ async def assign_task(callback_query: CallbackQuery):
         await callback_query.message.answer(f"❌ Ошибка Platrum: {response.text}\n📤 Отправлено: {data}")
 
     await callback_query.answer()
+
+@dp.message_handler(commands=["find"])
+async def find_task(message: types.Message):
+    keyword = message.get_args().strip().lower()
+    if not keyword:
+        await message.reply("Пожалуйста, укажи ключевое слово для поиска: /find <ключевое слово>")
+        return
+
+    url = "https://steves.platrum.ru/tasks/api/task/list"
+    headers = {
+        "Api-key": PLATRUM_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(url, headers=headers, json={})
+    result = response.json()
+
+    if result.get("status") != "success":
+        await message.reply(f"❌ Ошибка при получении списка задач: {response.text}")
+        return
+
+    tasks = result.get("data", [])
+    matches = [task for task in tasks if keyword in task.get("name", "").lower()]
+
+    if not matches:
+        await message.reply("🔍 Ничего не найдено.")
+        return
+
+    reply_text = "🔍 Найденные задачи:\n"
+    for task in matches[:5]:  # максимум 5 задач
+        task_id = task["id"]
+        name = task["name"]
+        link = f"https://steves.platrum.ru/tasks/task/{task_id}"
+        reply_text += f"• {name} — [Открыть]({link})\n"
+
+    await message.reply(reply_text, parse_mode="Markdown")
 
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
